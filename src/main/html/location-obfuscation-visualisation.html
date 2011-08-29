@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>Obfuscate a location</title>
+	<link rel="stylesheet" type="text/css" title="Location" href="style.css" />
+</head>
+<body>
+	<header>
+		<h1>Obfuscate a location</h1>
+		<p>Fill obfuscation results and see a visualization in a map.</p>
+	</header>
+	<div id="content">
+		<section id="data">
+			<header>
+				<h1>Obfuscation results</h1>
+			</header>
+			<form id="visualize">
+			<div>
+				<label for="results">Obfuscation results to visualize</label>
+					<textarea name="results" id="results" cols="25" rows="10" placeholder="Obfuscation results JSON formatted" tabindex="1"></textarea>
+				
+				<p>In JSON format:<br />
+				<pre>
+{
+"results": [
+	{
+	"latitude": "measured latitude"
+	"longitude": "measured longitude"
+	"horizontalAccuracy": "accuracy measurement"
+	},
+	{
+	"latitude": "obfuscated latitude"
+	"longitude": "obfuscated longitude"
+	"horizontalAccuracy": "obfuscated accuracy"
+	}
+	]
+}
+				</pre>
+				</p>
+				<input type="submit" value="Show me!" tabindex="2" />
+			</div>
+			</form>
+		</section>
+		<section id="visualization">
+			<header>
+				<h1>Visualization</h1>
+			</header>
+			<p id="status"></p>
+			<div id="map"></div>
+		</section>
+	</div>
+	<footer>
+		<p>Copyright 2011 Olivier Maridat</p>
+	</footer>
+	
+<script text="text/javascript" src="jquery.js"></script>
+<script text="text/javascript" src="json.js"></script>
+<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+<script text="text/javascript" src="display-location.js"></script>	
+</body>
+</html>
