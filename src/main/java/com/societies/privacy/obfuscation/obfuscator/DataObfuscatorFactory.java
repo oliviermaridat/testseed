@@ -20,6 +20,9 @@ public class DataObfuscatorFactory {
 			if (obfuscationType.getUri().equals(new URI(ObfuscationTypes.GEOLOCATION))) {
 				return new GeolocationObfuscator();
 			}
+			if (obfuscationType.getUri().equals(new URI(ObfuscationTypes.GEOLOCATIONV2))) {
+				return new GeolocationObfuscatorV2();
+			}
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}

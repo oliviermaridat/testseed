@@ -9,5 +9,6 @@ package com.societies.privacy.data;
  */
 public class ObfuscationTypes {
 	public static String GEOLOCATION = "http://societies/data/context/geolocation";
+	public static String GEOLOCATIONV2 = "http://societies/data/context/geolocationV2";
 	public static String NAMES = "http://societies/data/context/names";
 }
