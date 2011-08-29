@@ -40,7 +40,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 		float obfuscationLevel = cmd.hasOption("l") ? Float.parseFloat(cmd.getOptionValue("l")) : defaultObfuscationLevel;
 		double latitude = cmd.hasOption("la") ? Double.parseDouble(cmd.getOptionValue("la")) : defaultLatitude;
 		double longitude = cmd.hasOption("lo") ? Double.parseDouble(cmd.getOptionValue("lo")) : defaultLongitude;
-		float horizontalAccuracy = cmd.hasOption("h") ? Float.parseFloat(cmd.getOptionValue("h")) : defaultHorizontalAccuracy;
+		float horizontalAccuracy = cmd.hasOption("ha") ? Float.parseFloat(cmd.getOptionValue("ha")) : defaultHorizontalAccuracy;
 		String obfuscationAlgorithm = cmd.hasOption('a') ? cmd.getOptionValue("a") : defaultObfuscationAlgorithm;
 				
 		DataObfuscationManager dataObfuscationManager = null;
@@ -52,7 +52,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
         	
         	LOG.info("Obfuscate a Data");
         	Geolocation geolocation = new Geolocation(latitude, longitude, horizontalAccuracy);
-        	System.out.println("{[\n"+geolocation.toJSON()+",");
+        	System.out.println("{\"results\": [\n"+geolocation.toJSON()+",");
         	dataObfuscationManager.obfuscateData(geolocation, obfuscationType, obfuscationLevel, callback);
         	System.out.println("]}");
         	
@@ -69,7 +69,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 		options.addOption("l", true, "Obfuscation level (defaults to "+defaultObfuscationLevel+")");
 		options.addOption("la", true, "Latitude (defaults to "+defaultLatitude+")");
 		options.addOption("lo", true, "Longitude (defaults to "+defaultLongitude+")");
-		options.addOption("h", true, "Horizontal accuracy (defaults to "+defaultHorizontalAccuracy+")");
+		options.addOption("ha", true, "Horizontal accuracy (defaults to "+defaultHorizontalAccuracy+")");
 		options.addOption("a", true, "Force to use an obfuscation algorithm (defaults to "+defaultObfuscationAlgorithm+")");
 		CommandLineParser parser = new PosixParser();
 		CommandLine cmd = null;
@@ -88,7 +88,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	}	
 	private static void printHelp(Options options) {
 		HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp("java -jar [...]-bin.jar [-l obfuscationLevel] [-la latitude] [-lo longitude] [-h horizontalAccuracy] [-a obfuscationAlgorithm] ", options);
+		formatter.printHelp("java -jar [...]-bin.jar [-l obfuscationLevel] [-la latitude] [-lo longitude] [-ha horizontalAccuracy] [-a obfuscationAlgorithm] ", options);
 	}
 	
 	/* --- Methods --- */	
