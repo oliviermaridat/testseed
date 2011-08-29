@@ -19,12 +19,19 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 	
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
+		// Verifications
 		if (!(data instanceof Geolocation)) {
 			throw new Exception("It's not the right obfuscation algorithm!");
 		}
+		if (null == callback || null == obfuscationType) {
+			throw new Exception("Wrong parameters");
+		}
+		
 		Geolocation obfuscatedGeolocation = (Geolocation) data;
+		// Obfuscation Algorithm
 		obfuscatedGeolocation.setHorizontalAccuracy(obfuscatedGeolocation.getHorizontalAccuracy()/((float) Math.sqrt(obfuscationLevel)));
-//		LOG.info("Obfuscated location: "+obfuscatedLocation);
-		System.out.println(obfuscatedGeolocation.toJSON());
+		
+		// Send to callback
+		callback.obfuscationResult(obfuscatedGeolocation);
 	}
 }

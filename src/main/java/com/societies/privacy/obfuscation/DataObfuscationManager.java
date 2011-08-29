@@ -14,7 +14,9 @@ import org.apache.log4j.Logger;
 import com.societies.data.Geolocation;
 import com.societies.data.accessor.GeolocationDAO;
 import com.societies.privacy.data.ObfuscationType;
+import com.societies.privacy.data.ObfuscationTypes;
 import com.societies.privacy.obfuscation.obfuscator.DataObfuscatorFactory;
+import com.societies.privacy.obfuscation.obfuscator.listener.ObfuscatorListener;
 
 /**
  * @author olivierm
@@ -22,11 +24,12 @@ import com.societies.privacy.obfuscation.obfuscator.DataObfuscatorFactory;
  */
 public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObfuscatedAccessor{
 	private static final Logger LOG = Logger.getLogger(DataObfuscationManager.class);
+	
 	private static float defaultObfuscationLevel = 1;
 	private static double defaultLatitude = 48.856666;
 	private static double defaultLongitude = 2.350987;
 	private static float defaultHorizontalAccuracy = 542;
-	private static String defaultAlgorithm = "geolocation";
+	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATION;
 	
 	/* -- Main -- */
 	/**
@@ -38,18 +41,24 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 		double latitude = cmd.hasOption("la") ? Double.parseDouble(cmd.getOptionValue("la")) : defaultLatitude;
 		double longitude = cmd.hasOption("lo") ? Double.parseDouble(cmd.getOptionValue("lo")) : defaultLongitude;
 		float horizontalAccuracy = cmd.hasOption("h") ? Float.parseFloat(cmd.getOptionValue("h")) : defaultHorizontalAccuracy;
-		String algorithm = cmd.hasOption('a') ? cmd.getOptionValue("a") : defaultAlgorithm;
+		String obfuscationAlgorithm = cmd.hasOption('a') ? cmd.getOptionValue("a") : defaultObfuscationAlgorithm;
 				
 		DataObfuscationManager dataObfuscationManager = null;
         try {
         	dataObfuscationManager = new DataObfuscationManager();
         	
+        	ObfuscationType obfuscationType = (null == obfuscationAlgorithm || "".equals(obfuscationAlgorithm) ? new ObfuscationType(ObfuscationTypes.GEOLOCATION) : new ObfuscationType(obfuscationAlgorithm));
+        	IDataObfuscationManagerCallback<Object> callback = new ObfuscatorListener();
+        	
+        	LOG.info("Obfuscate a Data");
         	Geolocation geolocation = new Geolocation(latitude, longitude, horizontalAccuracy);
-//        	LOG.info("Geolocation to obfuscate: "+geolocation);
-        	System.out.println(geolocation.toJSON());
-        	ObfuscationType obfuscationType = new ObfuscationType("http://societies/data/context/geolocation");
-        	IDataObfuscationManagerCallback<Object> callback = null;
+        	System.out.println("{[\n"+geolocation.toJSON()+",");
         	dataObfuscationManager.obfuscateData(geolocation, obfuscationType, obfuscationLevel, callback);
+        	System.out.println("]}");
+        	
+        	LOG.info("Get an Obfuscated Data");
+        	dataObfuscationManager.getObfuscatedData(0, obfuscationType, obfuscationLevel, callback);
+        	System.out.println("]}");
         }
         catch (Exception e) {
 			e.printStackTrace();
@@ -61,7 +70,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 		options.addOption("la", true, "Latitude (defaults to "+defaultLatitude+")");
 		options.addOption("lo", true, "Longitude (defaults to "+defaultLongitude+")");
 		options.addOption("h", true, "Horizontal accuracy (defaults to "+defaultHorizontalAccuracy+")");
-		options.addOption("a", true, "Force to use an obfuscation algorithm (defaults to "+defaultAlgorithm+")");
+		options.addOption("a", true, "Force to use an obfuscation algorithm (defaults to "+defaultObfuscationAlgorithm+")");
 		CommandLineParser parser = new PosixParser();
 		CommandLine cmd = null;
 		try {
@@ -79,7 +88,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	}	
 	private static void printHelp(Options options) {
 		HelpFormatter formatter = new HelpFormatter();
-		formatter.printHelp("java -jar [...]-bin.jar [-l obfuscationLevel] [-la latitude] [-lo longitude] [-h horizontalAccuracy] [-a algorithm] ", options);
+		formatter.printHelp("java -jar [...]-bin.jar [-l obfuscationLevel] [-la latitude] [-lo longitude] [-h horizontalAccuracy] [-a obfuscationAlgorithm] ", options);
 	}
 	
 	/* --- Methods --- */	
@@ -96,8 +105,17 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	
 	public void getObfuscatedData(int dataId, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
+		// Verifications
+		if (null == callback || null == obfuscationType) {
+			throw new Exception("Wrong parameters");
+		}
+		
+		// Retrieve data
 		GeolocationDAO dao = new GeolocationDAO();
 		Geolocation data = dao.findGeolocationById(dataId);
+		System.out.println("{[\n"+data.toJSON()+",");
+		
+		// Algorithm
 		obfuscateData(data, obfuscationType, obfuscationLevel, callback);		
 	}
 }
