@@ -29,7 +29,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	private static double defaultLatitude = 48.856666;
 	private static double defaultLongitude = 2.350987;
 	private static float defaultHorizontalAccuracy = 542;
-	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATION;
+	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATIONV2;
 	
 	/* -- Main -- */
 	/**
@@ -56,9 +56,9 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
         	dataObfuscationManager.obfuscateData(geolocation, obfuscationType, obfuscationLevel, callback);
         	System.out.println("]}");
         	
-        	LOG.info("Get an Obfuscated Data");
-        	dataObfuscationManager.getObfuscatedData(0, obfuscationType, obfuscationLevel, callback);
-        	System.out.println("]}");
+//        	LOG.info("Get an Obfuscated Data");
+//        	dataObfuscationManager.getObfuscatedData(0, obfuscationType, obfuscationLevel, callback);
+//        	System.out.println("]}");
         }
         catch (Exception e) {
 			e.printStackTrace();
