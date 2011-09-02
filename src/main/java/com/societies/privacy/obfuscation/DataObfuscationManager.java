@@ -29,7 +29,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	private static double defaultLatitude = 48.856666;
 	private static double defaultLongitude = 2.350987;
 	private static float defaultHorizontalAccuracy = 542;
-	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATIONV2;
+	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATIONV3;
 	
 	/* -- Main -- */
 	/**
@@ -50,7 +50,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
         	ObfuscationType obfuscationType = (null == obfuscationAlgorithm || "".equals(obfuscationAlgorithm) ? new ObfuscationType(ObfuscationTypes.GEOLOCATION) : new ObfuscationType(obfuscationAlgorithm));
         	IDataObfuscationManagerCallback<Object> callback = new ObfuscatorListener();
         	
-        	LOG.info("Obfuscate a Data");
+//        	LOG.info("Obfuscate a Data");
         	Geolocation geolocation = new Geolocation(latitude, longitude, horizontalAccuracy);
         	System.out.println("{\"results\": [\n"+geolocation.toJSON()+",");
         	dataObfuscationManager.obfuscateData(geolocation, obfuscationType, obfuscationLevel, callback);
@@ -99,7 +99,13 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel,
 			IDataObfuscationManagerCallback<Object> callback) throws Exception {
+		// Select obfuscator
 		IDataObfuscator<Object> obfuscator = DataObfuscatorFactory.getDataObfuscator(obfuscationType);
+		// Check obfuscation level
+		if (0 == obfuscationLevel) {
+			obfuscationLevel = 0.0000000001F;
+		}
+		// Obfuscate
 		obfuscator.obfuscateData(data, obfuscationType, obfuscationLevel, callback);
 	}
 	

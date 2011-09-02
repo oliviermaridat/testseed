@@ -5,6 +5,13 @@ package com.societies.privacy.obfuscation.obfuscator;
 
 import java.util.Random;
 
+import org.apache.commons.math.FunctionEvaluationException;
+import org.apache.commons.math.analysis.ComposableFunction;
+import org.apache.commons.math.analysis.DifferentiableUnivariateRealFunction;
+import org.apache.commons.math.analysis.UnivariateRealFunction;
+import org.apache.commons.math.analysis.solvers.NewtonSolver;
+import org.apache.commons.math.analysis.solvers.UnivariateRealSolver;
+import org.apache.commons.math.analysis.solvers.UnivariateRealSolverFactoryImpl;
 import org.apache.log4j.Logger;
 
 import com.societies.data.Geolocation;
@@ -18,6 +25,13 @@ import com.societies.privacy.obfuscation.IDataObfuscator;
  */
 public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV2.class);
+	
+	private int OPERATION_E = 1;
+	private int OPERATION_R = 2;
+	private int OPERATION_S = 3;
+	private int OPERATION_ES = 4;
+	private int OPERATION_SE = 5;
+	private int OPERATION_SR = 6;
 	
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
@@ -46,56 +60,97 @@ public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 		/* ALGORITHM
 		
 		*/
+		geolocation.setObfuscationLevel(1);
+		Geolocation obfuscatedGeolocation = null;
+		// --- Algo 1: enlarge radius
+//		Random rand = new Random();
+//		float middleObfuscationLevel = 0;
+//		while((middleObfuscationLevel = rand.nextFloat()) < obfuscationLevel) {}
+//		obfuscatedGeolocation = enlargeRadius(geolocation, middleObfuscationLevel);
+//		obfuscatedGeolocation.setObfuscationLevel(middleObfuscationLevel);
+//		System.out.println(obfuscatedGeolocation.toJSON()+",");
+		// --- Algo 2: reduce radius
+//		obfuscatedGeolocation = reduceRadius(geolocation, 0.5F);
 		
-		
-		// Test
-//		double lat1 = sexagecimal2decimal(50, 03, 58);
-//		double lon1 = sexagecimal2decimal(5, 42, 53);
-//		double lat2 = sexagecimal2decimal(58, 38, 38);
-//		double lon2 = sexagecimal2decimal(3, 4, 12);
-//		double dist = distVincenty(lat1, lon1, lat2, lon2);
-//		LOG.info("distance = "+dist);
-//		double lat = sexagecimal2decimal(37, 57, 3.72030, true);
-//		double lon = sexagecimal2decimal(144, 25, 29.52440);
-//		double bearing = sexagecimal2decimal(306, 52, 5.37);
-//		LOG.info("it is : "+lat+", "+lon+", bearing="+bearing);
-//		Geolocation location = new Geolocation(lat, lon, (float) 0);
-//		double distance = 54972.271;
-//		Geolocation newlocation = destVincenty(location, bearing, distance);
-//		LOG.info("newlocation = "+newlocation);
-//		double nlat = sexagecimal2decimal(37, 39, 10.1561, true);
-//		double nlon = sexagecimal2decimal(143, 55, 35.3839);
-//		LOG.info("it must be : "+nlat+", "+nlon);
-		
-		// test
-		
-		
-		
-		// Algo 1
-		//geolocation.setHorizontalAccuracy(geolocation.getHorizontalAccuracy()/((float) Math.sqrt(obfuscationLevel)));
-		
-		// Algo 3
-//		LOG.info("Algo 3");
+		// --- Algo 3: shift centre
+		obfuscatedGeolocation = shiftCentre(geolocation, obfuscationLevel);
+		return obfuscatedGeolocation;
+//		Geolocation finalObfuscatedGeolocation = shiftCentre(geolocation, obfuscatedGeolocation, obfuscationLevel);
+//		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
+//		return finalObfuscatedGeolocation;
+	}
+	
+	private Geolocation enlargeRadius(Geolocation geolocation, float obfuscationLevel) {
+		Geolocation obfuscatedGeolocation = new Geolocation(geolocation.getLatitude(), geolocation.getLongitude(), geolocation.getHorizontalAccuracy()/((float) Math.sqrt(obfuscationLevel)));
+		return obfuscatedGeolocation;
+	}
+	
+	private Geolocation reduceRadius(Geolocation geolocation, float obfuscationLevel) {
+		Geolocation obfuscatedGeolocation = new Geolocation(geolocation.getLatitude(), geolocation.getLongitude(), geolocation.getHorizontalAccuracy()*((float) Math.sqrt(obfuscationLevel)));
+		return obfuscatedGeolocation;
+	}
+	
+	private Geolocation shiftCentre(Geolocation geolocation, float obfuscationLevel) {
+		// Select a random theta: shift angle
 		Random rand = new Random();
-		double theta = Math.toRadians(rand.nextDouble()*360);
+		double theta = rand.nextDouble()*360;
+		// Resolve following system:
+		/*
+		 * alpha - sin(alpha) = pi*obfuscationLevel
+		 * d = 2*horizontalAccuracy*cos(alpha/2)
+		 */
 		double alpha = solveXMoinsSinx(obfuscationLevel);
-//		LOG.info("alpha final = "+alpha);
-//		LOG.info("cos alpha/2= "+Math.cos(alpha/2));
 		double d = 2*geolocation.getHorizontalAccuracy()*Math.cos(alpha/2);
-//		LOG.info("d = "+d);
-		Geolocation newlocation = destVincenty(geolocation, 0, d);
-		newlocation.setHorizontalAccuracy(geolocation.getHorizontalAccuracy());
-//		LOG.info("Original location: "+geolocation);
-//		LOG.info("New location: "+newlocation);
-		// /!\ We can't add 1000meters to a latitude (in degrees) like that!
-//		geolocation.setLatitude(geolocation.getLatitude()+d*Math.sin(theta));
-//		geolocation.setLongitude(geolocation.getLongitude()+d*Math.cos(theta));
+		// Shift the geolocation center by distance d and angle theta
+		/*
+		 * /!\ Latitude/longitude are angles, not cartesian coordinates!
+		 * new latitude != latitude+d*sin(alpha)
+		 * new longitude != longitude+d*cos(alpha)
+		 */
+		Geolocation obfuscatedGeolocation = shitLatLgn(geolocation, theta, d);
+		return obfuscatedGeolocation;
+	}
+	
+	private Geolocation shiftCentre(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
+		// Select a random theta: shift angle
+		Random rand = new Random();
+		double theta = rand.nextDouble()*360;
+		// Resolve following system:
+		/*
+		 * alpha - sin(alpha) = pi*obfuscationLevel
+		 * d = 2*horizontalAccuracy*cos(alpha/2)
+		 */
+		double gamma = solveEquation(initialLocation, middleLocation, obfuscationLevel);
 		
-		return newlocation;
+		
+//		ComposableFunction f = new ComposableFunction() {
+//			
+//			@Override
+//			public double value(double x) throws FunctionEvaluationException {
+//				// TODO Auto-generated method stub
+//				return 0;
+//			}
+//		};
+//		UnivariateRealSolver solver = UnivariateRealSolverFactoryImpl.newInstance().newNewtonSolver();
+		
+		
+//		LOG.info("Gamma="+gamma);
+		double alpha = 2*Math.asin(middleLocation.getHorizontalAccuracy()/initialLocation.getHorizontalAccuracy()*Math.sin(gamma/2));
+//		LOG.info("Alpha="+alpha);
+		double d = initialLocation.getHorizontalAccuracy()*Math.cos(alpha/2)+middleLocation.getHorizontalAccuracy()*Math.cos(gamma/2);
+//		LOG.info("Distance="+d);
+		// Shift the geolocation center by distance d and angle theta
+		/*
+		 * /!\ Latitude/longitude are angles, not cartesian coordinates!
+		 * new latitude != latitude+d*sin(alpha)
+		 * new longitude != longitude+d*cos(alpha)
+		 */
+		Geolocation obfuscatedGeolocation = shitLatLgn(middleLocation, theta, d);
+		return obfuscatedGeolocation;
 	}
 	
 	/**
-	 * Solve x-sin(x)=PI*obfuscationLevel
+	 * Solve x-sin(x)=PI*obfuscationLevel with Newton Method
 	 * @param obfuscationLevel
 	 * @return x
 	 */
@@ -117,21 +172,77 @@ public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 		double xn = 2;
 		double C = Math.PI*obfuscationLevel;
 		for (int i = 0; i<5; i++) {
-//			LOG.info("alpha"+i+" = "+xn);
 			double xnmoins1 = xn;
 			xn = xnmoins1-((-C+xnmoins1-Math.sin(xnmoins1))/(1-Math.cos(xnmoins1)));
 		}	
 		return xn;
 	}
 	
+	
+	private double solveEquation(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
+		// -- Find x in x-sin(x)=PI*obfuscationLevel
+		/* Computation algorithm
+		We use Newton Method
+		f(x)=
+		f'(x)=
+		xn = xnmoins - f(x)/f'(x)
+		
+		The difficulty is initialization, but :
+		A sign study show ...
+		
+		Five iterations may be enough
+		 */
+		double ri = initialLocation.getHorizontalAccuracy();
+		double rf = middleLocation.getHorizontalAccuracy();
+		double ri2 = Math.pow(ri, 2);
+		double rf2 = Math.pow(rf, 2);
+//		double C = 2*Math.PI*obfuscationLevel*ri*rf;
+		double C = 2*Math.PI*obfuscationLevel*rf2;
+		double xn = 6;
+		for (int i = 0; i<10; i++) {
+			double xnmoins1 = xn;
+//			LOG.info("xn"+i+"="+xn);
+			xn = xnmoins1
+					-
+					(
+						(
+							(ri2*
+								(
+									2*Math.asin(rf/ri*Math.sin(xnmoins1/2))
+									-Math.sin(2*Math.asin(rf/ri*Math.sin(xnmoins1/2)))
+								)
+							)
+							+(rf2*(xnmoins1-Math.sin(xnmoins1)))
+							-C
+						)
+						/
+						(
+							(rf2/(Math.tan(xnmoins1/2)*Math.sqrt(1-Math.pow(rf/ri*Math.sin(xnmoins1/2), 2))))
+							+(rf2*(1-Math.cos(xnmoins1)))
+						)
+					);
+//			f'(x) = (
+//			(ri*rf*Math.cos(xnmoins1/2)/Math.sqrt(1-Math.pow(rf/ri*Math.sin(xnmoins1/2), 2))*
+//					(
+//						1
+//						-Math.cos(2*Math.asin(rf/ri*Math.sin(xnmoins1/2)))
+//					)
+//				)
+//				+(rf2*(1-Math.cos(xnmoins1)))
+//			);
+		}
+//		LOG.info("xnfinal="+xn+" ou "+Math.toDegrees(xn)+"°");
+		return xn;
+	}
+	
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
 	/* Vincenty Inverse Solution of Geodesics on the Ellipsoid (c) Chris Veness 2002-2010             */
-	/*                                                                                                */
+	/* http://www.movable-type.co.uk/                                                                                             */
 	/* from: Vincenty inverse formula - T Vincenty, "Direct and Inverse Solutions of Geodesics on the */
 	/*       Ellipsoid with application of nested equations", Survey Review, vol XXII no 176, 1975    */
-	/*       http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf                                             */
+	/*       http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf
+	/* adapted by: Olivier Maridat (Trialog, Societies Project) 2011                                  */
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
-
 	/**
 	 * Calculates geodetic distance between two points specified by latitude/longitude using 
 	 * Vincenty inverse formula for ellipsoids
@@ -196,31 +307,30 @@ public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 //	  s = s.toFixed(3); // round to 1mm precision
 	  
 	  // note: to return initial/final bearings in addition to distance, use something like:
-	  double fwdAz = Math.atan2(cosU2*sinLambda,  cosU1*sinU2-sinU1*cosU2*cosLambda);
-	  double revAz = Math.atan2(cosU1*sinLambda, -sinU1*cosU2+cosU1*sinU2*cosLambda);
+//	  double fwdAz = Math.atan2(cosU2*sinLambda,  cosU1*sinU2-sinU1*cosU2*cosLambda);
+//	  double revAz = Math.atan2(cosU1*sinLambda, -sinU1*cosU2+cosU1*sinU2*cosLambda);
 //	  return { distance: s, initialBearing: fwdAz.toDeg(), finalBearing: revAz.toDeg() };
 	  return s;
 	}
 	
 	/**
-	 * Calculates destination point given start point lat/long, bearing & distance, 
+	 * Calculates destination point given start point lat/long, angle (=direction) & distance of translation, 
 	 * using Vincenty inverse formula for ellipsoids
 	 *
-	 * @param   {Number} lat1, lon1: first point in decimal degrees
-	 * @param   {Number} bearing: initial bearing in decimal degrees
-	 * @param   {Number} dist: distance along bearing in metres
-	 * @returns (LatLon} destination point
+	 * @param geolocation first point in decimal degrees
+	 * @param direction direction of the translation
+	 * @param distance distance along direction in meters
+	 * @returns destination point
 	 */
-	public Geolocation destVincenty(Geolocation location, double bearing, double dist) {
+	public Geolocation shitLatLgn(Geolocation location, double direction, double distance) {
 		// WGS-84 ellipsiod
 		double a = 6378137;
 		double b = 6356752.3142;
-		double f = 1/298.257223563;  
-		double s = dist;
-		double alpha1 = Math.toRadians(bearing);
+		double f = 1/298.257223563; 
+		
+		double alpha1 = Math.toRadians(direction);
 		double sinAlpha1 = Math.sin(alpha1);
 		double cosAlpha1 = Math.cos(alpha1);
-
 		double tanU1 = (1-f) * Math.tan(Math.toRadians(location.getLatitude()));
 		double cosU1 = 1 / Math.sqrt((1 + tanU1*tanU1)), sinU1 = tanU1*cosU1;
 		double sigma1 = Math.atan2(tanU1, cosAlpha1);
@@ -229,13 +339,13 @@ public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 		double uSq = cosSqAlpha * (a*a - b*b) / (b*b);
 		double A = 1 + uSq/16384*(4096+uSq*(-768+uSq*(320-175*uSq)));
 		double B = uSq/1024 * (256+uSq*(-128+uSq*(74-47*uSq)));
-
-		double sigma = s / (b*A);
+		double sigma = distance / (b*A);
 		double sigmaP = 2*Math.PI;
 		double cos2SigmaM = 0;
 		double sinSigma = 0;
 		double cosSigma = 0;
 		double deltaSigma = 0;
+		// Iterations until |sigma-sigmaP| > 1e-12
 		while (Math.abs(sigma-sigmaP) > 1e-12) {
 			cos2SigmaM = Math.cos(2*sigma1 + sigma);
 			sinSigma = Math.sin(sigma);
@@ -243,7 +353,7 @@ public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 			deltaSigma = B*sinSigma*(cos2SigmaM+B/4*(cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)-
 					B/6*cos2SigmaM*(-3+4*sinSigma*sinSigma)*(-3+4*cos2SigmaM*cos2SigmaM)));
 			sigmaP = sigma;
-			sigma = s / (b*A) + deltaSigma;
+			sigma = distance / (b*A) + deltaSigma;
 		}
 
 	  double tmp = sinU1*sinSigma - cosU1*cosSigma*cosAlpha1;
@@ -254,12 +364,11 @@ public class GeolocationObfuscatorV2 implements IDataObfuscator<Object> {
 	  double L = lambda - (1-C) * f * sinAlpha *
 	      (sigma + C*sinSigma*(cos2SigmaM+C*cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)));
 	  double lon2 = (Math.toRadians(location.getLongitude())+L+3*Math.PI)%(2*Math.PI) - Math.PI;  // normalise to -180...+180
+//	  double revAz = Math.atan2(sinAlpha, -tmp);  // final shiftAngle, if required
 
-//	  double revAz = Math.atan2(sinAlpha, -tmp);  // final bearing, if required
-
-	  // Math.toDegrees(revAz) // final bearing
-	  return new Geolocation(Math.toDegrees(lat2), Math.toDegrees(lon2), (float) 0);
+	  return new Geolocation(Math.toDegrees(lat2), Math.toDegrees(lon2), location.getHorizontalAccuracy());
 	}
+	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
 
 	
 	public double sexagecimal2decimal(double degree, double minute, double seconde) {

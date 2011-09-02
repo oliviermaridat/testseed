@@ -11,7 +11,9 @@ public class Geolocation {
 	protected double latitude;
 	protected double longitude;
 	protected float horizontalAccuracy;
-	
+	private float obfuscationLevel;
+	private double shiftDirection;
+	private double shiftDistance;
 	
 	/* -- Constructor -- */
 	public Geolocation(double latitude, double longitude,
@@ -30,13 +32,15 @@ public class Geolocation {
 	@Override
 	public String toString() {
 		return "Geolocation [latitude=" + latitude + ", longitude=" + longitude
-				+ ", horizontalAccuracy=" + horizontalAccuracy + "]";
+				+ ", horizontalAccuracy=" + horizontalAccuracy
+				+ ", obfuscationLevel=" + obfuscationLevel + "]";
 	}
 	public String toXML() {
 		return "<geolocation>\n" +
 				"\t<latitude>" + latitude + "</latitude>\n" +
 				"\t<longitude>" + longitude+ "</longitude>\n" +
 				"\t<horizontalAccuracy>" + horizontalAccuracy + "</horizontalAccuracy>\n" +
+				"\t<obfuscationLevel>" + obfuscationLevel + "</obfuscationLevel>\n" +
 			"</geolocation>";
 	}
 	public String toJSON() {
@@ -44,6 +48,7 @@ public class Geolocation {
 				"\"latitude\": \""+latitude+"\"\n" +
 				"\"longitude\": \""+longitude+"\"\n" +
 				"\"horizontalAccuracy\": \""+horizontalAccuracy+"\"\n" +
+				"\"obfuscationLevel\": \""+obfuscationLevel+"\"\n" +
 				"}";
 	}
 	
@@ -82,5 +87,47 @@ public class Geolocation {
 	 */
 	public void setHorizontalAccuracy(float horizontalAccuracy) {
 		this.horizontalAccuracy = horizontalAccuracy;
+	}
+
+
+	public float getObfuscationLevel() {
+		return obfuscationLevel;
+	}
+
+
+	public void setObfuscationLevel(float obfuscationLevel) {
+		this.obfuscationLevel = obfuscationLevel;
+	}
+	
+
+	/**
+	 * @return the shiftDirection
+	 */
+	public double getShiftDirection() {
+		return shiftDirection;
+	}
+
+
+	/**
+	 * @param shiftDirection the shiftDirection to set
+	 */
+	public void setShiftDirection(double shiftDirection) {
+		this.shiftDirection = shiftDirection;
+	}
+
+
+	/**
+	 * @return the shiftDistance
+	 */
+	public double getShiftDistance() {
+		return shiftDistance;
+	}
+
+
+	/**
+	 * @param d the shiftDistance to set
+	 */
+	public void setShiftDistance(double d) {
+		this.shiftDistance = d;
 	}
 }
