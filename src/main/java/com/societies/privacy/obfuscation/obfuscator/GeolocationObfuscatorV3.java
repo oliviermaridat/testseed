@@ -19,6 +19,7 @@ import com.societies.privacy.obfuscation.IDataObfuscator;
  */
 public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV3.class);
+	private static final boolean DEBUG = true;
 	
 	private final int OPERATION_E = 0;
 	private final int OPERATION_R = 1;
@@ -52,7 +53,8 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 	 */
 	private Geolocation obfuscateLocation(Geolocation geolocation, float obfuscationLevel) {
 		/* ALGORITHM
-		
+		* Select randomly an algorithm
+		* And apply it
 		*/
 		Geolocation obfuscatedGeolocation = null;
 		Random rand = new Random();
@@ -80,21 +82,50 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		return obfuscatedGeolocation;
 	}
 	
+	/**
+	 * Location obfuscation algorithm
+	 * by enlarging the radius
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation EObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation obfuscatedGeolocation = null;
 		obfuscatedGeolocation = enlargeRadius(geolocation, obfuscationLevel);
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Location obfuscation algorithm
+	 * by reducing the radius
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation RObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation obfuscatedGeolocation = null;
 		obfuscatedGeolocation = reduceRadius(geolocation, obfuscationLevel);
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Location obfuscation algorithm
+	 * by shifting the centre of the geolocation circle
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation SObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation obfuscatedGeolocation = null;
 		obfuscatedGeolocation = shiftCentre(geolocation, obfuscationLevel);
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Location obfuscation algorithm
+	 * by enlarging the radius and then
+	 * shifting the centre of the geolocation circle
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation ESObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation finalObfuscatedGeolocation = null;
 		Geolocation middleObfuscatedGeolocation = null;
@@ -105,13 +136,23 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		while((middleObfuscationLevel = rand.nextFloat()) > obfuscationLevel) {}
 		middleObfuscatedGeolocation = enlargeRadius(geolocation, middleObfuscationLevel);
 		middleObfuscatedGeolocation.setObfuscationLevel(middleObfuscationLevel);
-		System.out.println(middleObfuscatedGeolocation.toJSON()+",");
+		if (DEBUG) {
+			System.out.println(middleObfuscatedGeolocation.toJSON()+",");
+		}
 		
 		// Shift
 		finalObfuscatedGeolocation = shiftCentreAfterEnlarging(geolocation, middleObfuscatedGeolocation, obfuscationLevel);
 		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
 		return finalObfuscatedGeolocation;
 	}
+	/**
+	 * Location obfuscation algorithm
+	 * by shifting the centre of the geolocation circle
+	 * and then enlarging the radius
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation SEObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation finalObfuscatedGeolocation = null;
 		Geolocation middleObfuscatedGeolocation = null;
@@ -122,13 +163,23 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		while((middleObfuscationLevel = rand.nextFloat()) > obfuscationLevel) {}
 		middleObfuscatedGeolocation = shiftCentre(geolocation, middleObfuscationLevel);
 		middleObfuscatedGeolocation.setObfuscationLevel(middleObfuscationLevel);
-		System.out.println(middleObfuscatedGeolocation.toJSON()+",");
+		if (DEBUG) {
+			System.out.println(middleObfuscatedGeolocation.toJSON()+",");
+		}
 		
 		// Enlarge
 		finalObfuscatedGeolocation = changeRadiusAfterShifting(middleObfuscatedGeolocation, obfuscationLevel);
 		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
 		return finalObfuscatedGeolocation;
-	}	
+	}
+	/**
+	 * Location obfuscation algorithm
+	 * by shifting the centre of the geolocation circle
+	 * and then reducing the radius
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation SRObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation finalObfuscatedGeolocation = null;
 		Geolocation middleObfuscatedGeolocation = null;
@@ -139,7 +190,9 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		while((middleObfuscationLevel = rand.nextFloat()) < obfuscationLevel) {}
 		middleObfuscatedGeolocation = shiftCentre(geolocation, middleObfuscationLevel);
 		middleObfuscatedGeolocation.setObfuscationLevel(middleObfuscationLevel);
-		System.out.println(middleObfuscatedGeolocation.toJSON()+",");
+		if (DEBUG) {
+			System.out.println(middleObfuscatedGeolocation.toJSON()+",");
+		}
 		
 		// Reduce
 		finalObfuscatedGeolocation = changeRadiusAfterShifting(middleObfuscatedGeolocation, obfuscationLevel);
@@ -147,16 +200,35 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		return finalObfuscatedGeolocation;
 	}
 	
+	/**
+	 * Enlarge the radius
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation enlargeRadius(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation obfuscatedGeolocation = new Geolocation(geolocation.getLatitude(), geolocation.getLongitude(), geolocation.getHorizontalAccuracy()/((float) Math.sqrt(obfuscationLevel)));
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Reduce the radius
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation reduceRadius(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation obfuscatedGeolocation = new Geolocation(geolocation.getLatitude(), geolocation.getLongitude(), geolocation.getHorizontalAccuracy()*((float) Math.sqrt(obfuscationLevel)));
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Enlarge or reduce the radius depending
+	 * of the previous shifting of the geolocation circle centre
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation changeRadiusAfterShifting(Geolocation geolocation, float obfuscationLevel) {
-		double alpha = solveXMoinsSinx(obfuscationLevel);
+		double alpha = solveXMoinsSinx(Math.PI*obfuscationLevel);
 		double cosAlphaOn2 = Math.cos(alpha/2);
 		if (0 == cosAlphaOn2) {
 			cosAlphaOn2 = 0.0000000001;
@@ -165,6 +237,12 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		Geolocation obfuscatedGeolocation = new Geolocation(geolocation.getLatitude(), geolocation.getLongitude(), horizontalAccuracy);
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Shift the geolocation circle centre
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation shiftCentre(Geolocation geolocation, float obfuscationLevel) {
 		// Select a random theta: shift angle
 		Random rand = new Random();
@@ -174,7 +252,7 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		 * alpha - sin(alpha) = pi*obfuscationLevel
 		 * d = 2*horizontalAccuracy*cos(alpha/2)
 		 */
-		double alpha = solveXMoinsSinx(obfuscationLevel);
+		double alpha = solveXMoinsSinx(Math.PI*obfuscationLevel);
 		double d = 2*geolocation.getHorizontalAccuracy()*Math.cos(alpha/2);
 		// Shift the geolocation center by distance d and angle theta
 		/*
@@ -188,6 +266,14 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		
 		return obfuscatedGeolocation;
 	}
+	/**
+	 * Shift the geolocation circle centre after
+	 * an enlargement of the radius
+	 * @param initialLocation Location to obfuscate
+	 * @param middleLocation Location enlarged
+	 * @param obfuscationLevel Obfuscation level
+	 * @return obfuscated location
+	 */
 	private Geolocation shiftCentreAfterEnlarging(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
 		// Select a random theta: shift angle
 		Random rand = new Random();
@@ -205,19 +291,21 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		 * new latitude != latitude+d*sin(alpha)
 		 * new longitude != longitude+d*cos(alpha)
 		 */
-		Geolocation tmpobfuscatedGeolocation = GeolocationUtils.shitLatLgn(initialLocation, theta, d);
-		tmpobfuscatedGeolocation.setObfuscationLevel(middleLocation.getObfuscationLevel()/obfuscationLevel);
-		System.out.println(tmpobfuscatedGeolocation.toJSON()+",");
+		if (DEBUG) {
+			Geolocation tmpobfuscatedGeolocation = GeolocationUtils.shitLatLgn(initialLocation, theta, d);
+			tmpobfuscatedGeolocation.setObfuscationLevel(middleLocation.getObfuscationLevel()/obfuscationLevel);
+			System.out.println(tmpobfuscatedGeolocation.toJSON()+",");
+		}
 		Geolocation obfuscatedGeolocation = GeolocationUtils.shitLatLgn(middleLocation, theta, d);
 		return obfuscatedGeolocation;
 	}
 	
 	/**
-	 * Solve x-sin(x)=PI*obfuscationLevel with Newton Method
+	 * Solve x-sin(x)-C=0 with Newton Method
 	 * @param obfuscationLevel
 	 * @return x
 	 */
-	private double solveXMoinsSinx(float obfuscationLevel) {
+	private double solveXMoinsSinx(double C) {
 		// -- Find x in x-sin(x)=PI*obfuscationLevel
 		/* Computation algorithm
 		We use Newton Method
@@ -233,7 +321,6 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		Five iterations may be enough
 		*/
 		double xn = 2;
-		double C = Math.PI*obfuscationLevel;
 		for (int i = 0; i<5; i++) {
 			double xnmoins1 = xn;
 			xn = xnmoins1-((-C+xnmoins1-Math.sin(xnmoins1))/(1-Math.cos(xnmoins1)));
