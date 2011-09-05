@@ -29,7 +29,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	private static double defaultLatitude = 48.856666;
 	private static double defaultLongitude = 2.350987;
 	private static float defaultHorizontalAccuracy = 542;
-	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATIONV3;
+	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATIONV4;
 	
 	/* -- Main -- */
 	/**
@@ -47,7 +47,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
         try {
         	dataObfuscationManager = new DataObfuscationManager();
         	
-        	ObfuscationType obfuscationType = (null == obfuscationAlgorithm || "".equals(obfuscationAlgorithm) ? new ObfuscationType(ObfuscationTypes.GEOLOCATION) : new ObfuscationType(obfuscationAlgorithm));
+        	ObfuscationType obfuscationType = new ObfuscationType(obfuscationAlgorithm);
         	IDataObfuscationManagerCallback<Object> callback = new ObfuscatorListener();
         	
 //        	LOG.info("Obfuscate a Data");
@@ -99,29 +99,42 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel,
 			IDataObfuscationManagerCallback<Object> callback) throws Exception {
-		// Select obfuscator
-		IDataObfuscator<Object> obfuscator = DataObfuscatorFactory.getDataObfuscator(obfuscationType);
+		// -- Verifications
+		if (null == data || null == callback || null == obfuscationType) {
+			throw new Exception("Wrong parameters");
+		}
 		// Check obfuscation level
 		if (0 == obfuscationLevel) {
 			obfuscationLevel = 0.0000000001F;
 		}
-		// Obfuscate
+				
+		// -- Select obfuscator
+		IDataObfuscator<Object> obfuscator = DataObfuscatorFactory.getDataObfuscator(obfuscationType);
+		
+		// -- Obfuscate
 		obfuscator.obfuscateData(data, obfuscationType, obfuscationLevel, callback);
 	}
 	
 	public void getObfuscatedData(int dataId, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
-		// Verifications
+		// -- Verifications
 		if (null == callback || null == obfuscationType) {
 			throw new Exception("Wrong parameters");
 		}
+		// Check obfuscation level
+		if (0 == obfuscationLevel) {
+			obfuscationLevel = 0.0000000001F;
+		}
 		
-		// Retrieve data
+		// -- Retrieve data
 		GeolocationDAO dao = new GeolocationDAO();
 		Geolocation data = dao.findGeolocationById(dataId);
+		if (null == data) {
+			throw new Exception("No data");
+		}
 		System.out.println("{[\n"+data.toJSON()+",");
 		
-		// Algorithm
+		// -- Algorithm
 		obfuscateData(data, obfuscationType, obfuscationLevel, callback);		
 	}
 }

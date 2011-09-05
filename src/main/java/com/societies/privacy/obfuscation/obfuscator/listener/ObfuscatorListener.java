@@ -9,7 +9,7 @@ public class ObfuscatorListener implements IDataObfuscationManagerCallback<Objec
 	private static final Logger LOG = Logger.getLogger(ObfuscatorListener.class);
 
 	public void obfuscationResult(Object obfuscatedData) {
-		if (obfuscatedData instanceof Geolocation) {
+		if (null != obfuscatedData && obfuscatedData instanceof Geolocation) {
 			System.out.println(((Geolocation) obfuscatedData).toJSON());
 		}		
 	}

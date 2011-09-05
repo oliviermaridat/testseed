@@ -3,6 +3,8 @@
  */
 package com.societies.privacy.obfuscation.obfuscator;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
@@ -17,8 +19,8 @@ import com.societies.privacy.obfuscation.IDataObfuscator;
  * @author olivierm
  * @date 26 août 2011
  */
-public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
-	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV3.class);
+public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
+	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV4.class);
 	private static final boolean DEBUG = true;
 	
 	private final int OPERATION_E = 0;
@@ -57,7 +59,7 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		Geolocation obfuscatedGeolocation = null;
 		Random rand = new Random();
 		int algorithm = rand.nextInt(6);
-//		algorithm = 3;
+		algorithm = 3;
 		switch(algorithm) {
 			case OPERATION_E:
 				obfuscatedGeolocation = EObfuscation(geolocation, obfuscationLevel);
@@ -148,7 +150,7 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		// Enlarge
 		Random rand = new Random();
 		float middleObfuscationLevel = 0;
-		while((middleObfuscationLevel = rand.nextFloat()) > obfuscationLevel-obfuscationLevel/3) {}
+		while((middleObfuscationLevel = rand.nextFloat()) < obfuscationLevel) {}
 		middleObfuscatedGeolocation = EObfuscation(geolocation, middleObfuscationLevel);
 		middleObfuscatedGeolocation.setObfuscationLevel(middleObfuscationLevel);
 		if (DEBUG) {
@@ -156,14 +158,28 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		}
 		
 		// Shift
-		finalObfuscatedGeolocation = SObfuscation(geolocation, middleObfuscatedGeolocation.getObfuscationLevel()/obfuscationLevel);
-		if (DEBUG) {
-			finalObfuscatedGeolocation.setObfuscationLevel(middleObfuscatedGeolocation.getObfuscationLevel()/obfuscationLevel);
-			System.out.println(finalObfuscatedGeolocation.toJSON()+",");
-		}
-		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
-		finalObfuscatedGeolocation.setHorizontalAccuracy(middleObfuscatedGeolocation.getHorizontalAccuracy());
-		return finalObfuscatedGeolocation;
+		
+		// Select a random theta: shift angle
+		double theta = rand.nextDouble()*360;
+		// Resolve following system:
+		/*
+		 * alpha - sin(alpha) = pi*obfuscationLevel
+		 * d = 2*horizontalAccuracy*cos(alpha/2)
+		 */
+		List<Double> solutions = solveXYByNewton(geolocation, middleObfuscatedGeolocation, obfuscationLevel);
+		double alpha = solutions.get(0);
+		double gamma = solutions.get(1);
+		double d = geolocation.getHorizontalAccuracy()*Math.cos(alpha/2)+middleObfuscatedGeolocation.getHorizontalAccuracy()*Math.cos(gamma/2);
+//				LOG.info("Distance="+d);
+		// Shift the geolocation center by distance d and angle theta
+		/*
+		 * /!\ Latitude/longitude are angles, not cartesian coordinates!
+		 * new latitude != latitude+d*sin(alpha)
+		 * new longitude != longitude+d*cos(alpha)
+		 */
+		Geolocation obfuscatedGeolocation = GeolocationUtils.shitLatLgn(middleObfuscatedGeolocation, theta, d);
+		obfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
+		return obfuscatedGeolocation;
 	}
 	/**
 	 * Location obfuscation algorithm
@@ -304,6 +320,93 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 			}
 			xn = xnmoins1-((-C+xnmoins1-Math.sin(xnmoins1))/(1-Math.cos(xnmoins1)));
 		}	
+		return xn;
+	}
+	
+	private List<Double> solveXYByNewton(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
+		double ri = initialLocation.getHorizontalAccuracy();
+		double rf = middleLocation.getHorizontalAccuracy();
+		double ri2 = Math.pow(ri, 2);
+		double rf2 = Math.pow(rf, 2);
+		double C = 2*Math.PI*obfuscationLevel*rf*ri;
+		double alphan = 5;
+		double gamman = 6;
+		for (int i = 0; i<15; i++) {
+			double alphanmoins1 = alphan;
+			double gammanmoins1 = gamman;
+//			LOG.info("alphan"+i+"="+alphan+", gamman"+i+"="+gamman);
+			double f = ri*Math.sin(alphanmoins1/2)-rf*Math.sin(gammanmoins1/2);
+			double dfByAlpha = ri/2*Math.cos(alphanmoins1/2);
+			double dfByGamma = -rf/2*Math.cos(gammanmoins1/2);
+			double g = ri2*(alphanmoins1-Math.sin(alphanmoins1))+rf2*(gammanmoins1-Math.sin(gammanmoins1))-C;
+			double dgByAlpha = ri2*(1-Math.cos(alphanmoins1));
+			double dgByGamma = rf2*(1-Math.cos(gammanmoins1));
+			double delta = dfByAlpha*dgByGamma-dfByGamma*dgByAlpha;
+			alphan = alphanmoins1 - (f*dgByGamma-g*dfByGamma)/delta;
+			gamman = gammanmoins1 - (g*dfByAlpha-f*dgByAlpha)/delta;
+		}
+//		LOG.info("alphanfinal="+alphan+" ou "+Math.toDegrees(alphan)+"°");
+//		LOG.info("gammanfinal="+gamman+" ou "+Math.toDegrees(gamman)+"°");
+		List<Double> solutions = new ArrayList<Double>();
+		solutions.add(alphan);
+		solutions.add(gamman);
+		return solutions;
+	}
+	
+	
+	private double solveEquation(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
+		// -- Find x in x-sin(x)=PI*obfuscationLevel
+		/* Computation algorithm
+		We use Newton Method
+		f(alpha, gamma)=ri*sin(alpha/2)+rf*sin(gamma/2)
+		f'(x)=
+		xn = xnmoins - f(x)/f'(x)
+		
+		The difficulty is initialization, but :
+		A sign study show ...
+		
+		Five iterations may be enough
+		 */
+		double ri = initialLocation.getHorizontalAccuracy();
+		double rf = middleLocation.getHorizontalAccuracy();
+		double ri2 = Math.pow(ri, 2);
+		double rf2 = Math.pow(rf, 2);
+//		double C = 2*Math.PI*obfuscationLevel*ri*rf;
+		double C = 2*Math.PI*obfuscationLevel*rf2;
+		double xn = 6;
+		for (int i = 0; i<10; i++) {
+			double xnmoins1 = xn;
+//			LOG.info("xn"+i+"="+xn);
+			xn = xnmoins1
+					-
+					(
+						(
+							(ri2*
+								(
+									2*Math.asin(rf/ri*Math.sin(xnmoins1/2))
+									-Math.sin(2*Math.asin(rf/ri*Math.sin(xnmoins1/2)))
+								)
+							)
+							+(rf2*(xnmoins1-Math.sin(xnmoins1)))
+							-C
+						)
+						/
+						(
+							(rf2/(Math.tan(xnmoins1/2)*Math.sqrt(1-Math.pow(rf/ri*Math.sin(xnmoins1/2), 2))))
+							+(rf2*(1-Math.cos(xnmoins1)))
+						)
+					);
+//			f'(x) = (
+//			(ri*rf*Math.cos(xnmoins1/2)/Math.sqrt(1-Math.pow(rf/ri*Math.sin(xnmoins1/2), 2))*
+//					(
+//						1
+//						-Math.cos(2*Math.asin(rf/ri*Math.sin(xnmoins1/2)))
+//					)
+//				)
+//				+(rf2*(1-Math.cos(xnmoins1)))
+//			);
+		}
+//		LOG.info("xnfinal="+xn+" ou "+Math.toDegrees(xn)+"°");
 		return xn;
 	}
 }

@@ -26,8 +26,12 @@ public class DataObfuscatorFactory {
 			if (obfuscationType.getUri().equals(new URI(ObfuscationTypes.GEOLOCATIONV3))) {
 				return new GeolocationObfuscatorV3();
 			}
+			if (obfuscationType.getUri().equals(new URI(ObfuscationTypes.GEOLOCATIONV4))) {
+				return new GeolocationObfuscatorV4();
+			}
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
+			throw new RuntimeException("No Obfuscator to obfuscate that type of data");
 		}
 		throw new RuntimeException("No Obfuscator to obfuscate that type of data");
 	}
