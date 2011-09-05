@@ -20,12 +20,12 @@ import com.societies.privacy.obfuscation.IDataObfuscator;
 public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV3.class);
 	
-	private int OPERATION_E = 1;
-	private int OPERATION_R = 2;
-	private int OPERATION_S = 3;
-	private int OPERATION_ES = 4;
-	private int OPERATION_SE = 5;
-	private int OPERATION_SR = 6;
+	private final int OPERATION_E = 0;
+	private final int OPERATION_R = 1;
+	private final int OPERATION_S = 2;
+	private final int OPERATION_ES = 3;
+	private final int OPERATION_SE = 4;
+	private final int OPERATION_SR = 5;
 	
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
@@ -55,7 +55,28 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		
 		*/
 		Geolocation obfuscatedGeolocation = null;
-		obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel);
+		Random rand = new Random();
+		int algorithm = rand.nextInt(6);
+		switch(algorithm) {
+			case OPERATION_E:
+				obfuscatedGeolocation = EObfuscation(geolocation, obfuscationLevel);
+			break;
+			case OPERATION_R:
+				obfuscatedGeolocation = RObfuscation(geolocation, obfuscationLevel);
+			break;
+			case OPERATION_S:
+				obfuscatedGeolocation = SObfuscation(geolocation, obfuscationLevel);
+			break;
+			case OPERATION_ES:
+				obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel);
+			break;
+			case OPERATION_SR:
+				obfuscatedGeolocation = SRObfuscation(geolocation, obfuscationLevel);
+			break;
+			case OPERATION_SE:
+				obfuscatedGeolocation = SEObfuscation(geolocation, obfuscationLevel);
+			break;
+		}
 		return obfuscatedGeolocation;
 	}
 	
@@ -81,7 +102,7 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		// Enlarge
 		Random rand = new Random();
 		float middleObfuscationLevel = 0;
-		while((middleObfuscationLevel = rand.nextFloat()) < obfuscationLevel) {}
+		while((middleObfuscationLevel = rand.nextFloat()) > obfuscationLevel) {}
 		middleObfuscatedGeolocation = enlargeRadius(geolocation, middleObfuscationLevel);
 		middleObfuscatedGeolocation.setObfuscationLevel(middleObfuscationLevel);
 		System.out.println(middleObfuscatedGeolocation.toJSON()+",");
@@ -107,8 +128,7 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		finalObfuscatedGeolocation = changeRadiusAfterShifting(middleObfuscatedGeolocation, obfuscationLevel);
 		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
 		return finalObfuscatedGeolocation;
-	}
-	
+	}	
 	private Geolocation SRObfuscation(Geolocation geolocation, float obfuscationLevel) {
 		Geolocation finalObfuscatedGeolocation = null;
 		Geolocation middleObfuscatedGeolocation = null;
@@ -145,7 +165,6 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		Geolocation obfuscatedGeolocation = new Geolocation(geolocation.getLatitude(), geolocation.getLongitude(), horizontalAccuracy);
 		return obfuscatedGeolocation;
 	}
-	
 	private Geolocation shiftCentre(Geolocation geolocation, float obfuscationLevel) {
 		// Select a random theta: shift angle
 		Random rand = new Random();
@@ -169,7 +188,6 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		
 		return obfuscatedGeolocation;
 	}
-	
 	private Geolocation shiftCentreAfterEnlarging(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
 		// Select a random theta: shift angle
 		Random rand = new Random();
@@ -179,7 +197,7 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		 * alpha - sin(alpha) = pi*obfuscationLevel
 		 * d = 2*horizontalAccuracy*cos(alpha/2)
 		 */
-		double alpha = solveXMoinsSinx(obfuscationLevel);
+		double alpha = solveXMoinsSinx(middleLocation.getObfuscationLevel()/obfuscationLevel);
 		double d = 2*initialLocation.getHorizontalAccuracy()*Math.cos(alpha/2);
 		// Shift the geolocation center by distance d and angle theta
 		/*
@@ -188,8 +206,9 @@ public class GeolocationObfuscatorV3 implements IDataObfuscator<Object> {
 		 * new longitude != longitude+d*cos(alpha)
 		 */
 		Geolocation tmpobfuscatedGeolocation = GeolocationUtils.shitLatLgn(initialLocation, theta, d);
+		tmpobfuscatedGeolocation.setObfuscationLevel(middleLocation.getObfuscationLevel()/obfuscationLevel);
 		System.out.println(tmpobfuscatedGeolocation.toJSON()+",");
-		Geolocation obfuscatedGeolocation = GeolocationUtils.shitLatLgn(middleLocation, theta, d+middleLocation.getHorizontalAccuracy()-initialLocation.getHorizontalAccuracy());
+		Geolocation obfuscatedGeolocation = GeolocationUtils.shitLatLgn(middleLocation, theta, d);
 		return obfuscatedGeolocation;
 	}
 	
