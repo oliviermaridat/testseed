@@ -23,8 +23,8 @@ import com.societies.privacy.obfuscation.IDataObfuscator;
  * @author olivierm
  * @date 26 août 2011
  */
-public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
-	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV4.class);
+public class GeolocationObfuscatorV5 implements IDataObfuscator<Object> {
+	private static final Logger LOG = Logger.getLogger(GeolocationObfuscatorV5.class);
 	private static final boolean DEBUG = true;
 	
 	private final int OPERATION_E = 0;
@@ -33,6 +33,12 @@ public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
 	private final int OPERATION_ES = 3;
 	private final int OPERATION_SE = 4;
 	private final int OPERATION_SR = 5;
+	
+	public double step = 0.1;
+	public double maxAlpha0 = 360;
+	public double maxGamma0 = 90;
+	public double precisionMax = 0.0000000000000000001;
+	public int nbMaxIteration = 30;
 	
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
@@ -63,7 +69,7 @@ public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
 		Geolocation obfuscatedGeolocation = null;
 		Random rand = new Random();
 		int algorithm = rand.nextInt(6);
-//		algorithm = 4;
+		algorithm = 5;
 		switch(algorithm) {
 			case OPERATION_E:
 				obfuscatedGeolocation = EObfuscation(geolocation, obfuscationLevel);
@@ -210,12 +216,8 @@ public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
 		}
 		
 		// Enlarge
-		finalObfuscatedGeolocation = changeRadiusAfterShifting(middleObfuscatedGeolocation, obfuscationLevel);
-//		List<Double> solutions = solveXYZByNewton(geolocation, middleObfuscatedGeolocation, obfuscationLevel, 1, 1, geolocation.getHorizontalAccuracy());
-//		for(Double d : solutions) {
-//			LOG.info("soluce = "+d);
-//		}
-//		finalObfuscatedGeolocation = new Geolocation(middleObfuscatedGeolocation.getLatitude(), middleObfuscatedGeolocation.getLongitude(), solutions.get(2).floatValue());
+		List<Double> solutions = solveXYZByNewton(geolocation, middleObfuscatedGeolocation, obfuscationLevel);
+		finalObfuscatedGeolocation = new Geolocation(middleObfuscatedGeolocation.getLatitude(), middleObfuscatedGeolocation.getLongitude(), solutions.get(2).floatValue());
 		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
 		return finalObfuscatedGeolocation;
 	}
@@ -242,7 +244,8 @@ public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
 		}
 		
 		// Reduce
-		finalObfuscatedGeolocation = changeRadiusAfterShifting(middleObfuscatedGeolocation, obfuscationLevel);
+		List<Double> solutions = solveXYZByNewton(geolocation, middleObfuscatedGeolocation, obfuscationLevel);
+		finalObfuscatedGeolocation = new Geolocation(middleObfuscatedGeolocation.getLatitude(), middleObfuscatedGeolocation.getLongitude(), solutions.get(2).floatValue());
 		finalObfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
 		return finalObfuscatedGeolocation;
 	}
@@ -376,98 +379,122 @@ public class GeolocationObfuscatorV4 implements IDataObfuscator<Object> {
 		return solutions;
 	}
 	
-	private List<Double> solveXYZByNewton(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel, double alpha0, double gamma0, double rf0) {
+	private List<Double> solveXYZByNewton(Geolocation initialLocation, Geolocation middleLocation, float obfuscationLevel) {
+		// Rename some variables
 		double ri = initialLocation.getHorizontalAccuracy();
-		double d = middleLocation.getShiftDistance();
 		double ri2 = Math.pow(ri, 2);
-//		double C = 2*Math.PI*obfuscationLevel*rf*ri;
-		double alphan = alpha0;
-		double gamman = gamma0;
-		double rfn = rf0;
+		double d = middleLocation.getShiftDistance();
+		
+		// Initialization
+		double alpha0 = 0.1;
+		double gamma0 = 0.1;
+		double rf0 = ri;
 		double precisionAlpha = alpha0;
 		double precisionGamma = gamma0;
 		double precisionRf = rf0;
-		double step = 0.5;
-		double maxAlpha0 = 360;
-		double maxGamma0 = 360;
-		double maxRf0 = ri+30000;
-		double precisionMax = 0.0000000000000000001;
-		int nbMaxIteration = 15;
-		int i = 0;
-		while(i<nbMaxIteration && (precisionAlpha > precisionMax || precisionGamma > precisionMax || precisionRf > precisionMax)) {
-			// Save precedent values
-			double alphanmoins1 = alphan;
-			double gammanmoins1 = gamman;
-			double rfnmoins1 = rfn;
-			LOG.info("alphan"+i+"="+alphan+" ("+precisionAlpha+"), gamman"+i+"="+gamman+" ("+precisionGamma+"), rf"+i+"="+rfn+" ("+precisionRf+")");
-			// Compute functions and their derivates
-			double f = ri*Math.sin(alphanmoins1/2)-rfnmoins1*Math.sin(gammanmoins1/2);
-			double dfByAlpha = ri/2*Math.cos(alphanmoins1/2);
-			double dfByGamma = -rfnmoins1/2*Math.cos(gammanmoins1/2);
-			double dfByRf = -Math.sin(gammanmoins1/2);
-			double g = ri2*(alphanmoins1-Math.sin(alphanmoins1))+Math.pow(rfnmoins1, 2)*(gammanmoins1-Math.sin(gammanmoins1))-2*Math.PI*obfuscationLevel*rfnmoins1*ri;
-			double dgByAlpha = ri2*(1-Math.cos(alphanmoins1));
-			double dgByGamma = Math.pow(rfnmoins1, 2)*(1-Math.cos(gammanmoins1));
-			double dgByRf = 2*rfnmoins1*(gammanmoins1-Math.sin(gammanmoins1))-2*Math.PI*obfuscationLevel*ri;
-			double h = ri*Math.cos(alphanmoins1/2)+rfnmoins1*Math.cos(gammanmoins1/2)-d;
-			double dhByAlpha = -ri/2*Math.sin(alphanmoins1/2);
-			double dhByGamma = -rfnmoins1/2*Math.sin(gammanmoins1/2);
-			double dhByRf = Math.cos(gammanmoins1/2);
+		double maxRf0 = ri+3000000;
+		
+		double alphan;
+		double gamman;
+		double rfn;		
+		boolean restart;
+		boolean stop = false;
+		// While correct values have not been computed
+		do {
+			restart = false;
 			
-			double [][] valuesF = {{f}, {g}, {h}};
-			double [][] valuesJ_F = {{dfByAlpha, dfByGamma, dfByRf}, {dgByAlpha, dgByGamma, dgByRf}, {dhByAlpha, dhByGamma, dhByRf}};
-	        RealMatrix F = new Array2DRowRealMatrix(valuesF);
-//	        System.out.println("F matrix: " + F);
-	        RealMatrix J_F = new Array2DRowRealMatrix(valuesJ_F);
-//	        System.out.println("J_F matrix: " + J_F);
-	        RealMatrix J_Finverse = new LUDecompositionImpl(J_F).getSolver().getInverse();
-	        RealMatrix tmp = J_Finverse.multiply(F);
-	        
-			// Compute new values
-			alphan = alphanmoins1 - tmp.getEntry(0,0);
-			gamman = gammanmoins1 - tmp.getEntry(1,0);
-			rfn = rfnmoins1 - tmp.getEntry(2,0);
-			// Compute precision
-			precisionAlpha = Math.abs(alphan-alphanmoins1);
-			precisionGamma = Math.abs(gamman-gammanmoins1);
-			precisionRf = Math.abs(rfn-rfnmoins1);
-			i++;
+			// Values n-1 = initialization values
+			alphan = alpha0;
+			gamman = gamma0;
+			rfn = rf0;
+			precisionAlpha = alpha0;
+			precisionGamma = gamma0;
+			precisionRf = rf0;
+			
+			// While a good precision have been reached
+			int i = 0;
+			while(i<nbMaxIteration && (precisionAlpha > precisionMax || precisionGamma > precisionMax || precisionRf > precisionMax)) {
+				// Save precedent values
+				double alphanmoins1 = alphan;
+				double gammanmoins1 = gamman;
+				double rfnmoins1 = rfn;
+//				if (rfnmoins1 > d+ri) {
+////					rfn = ri/((float) Math.sqrt(obfuscationLevel));
+//					stop = true;
+//					break;
+//				}
+	//			LOG.info("alphan"+i+"="+alphan+" ("+precisionAlpha+"), gamman"+i+"="+gamman+" ("+precisionGamma+"), rf"+i+"="+rfn+" ("+precisionRf+")");
+				
+				// Compute functions and their derivates
+				double rfnmoins12 = Math.pow(rfnmoins1, 2);
+				double sinGamma = Math.sin(gammanmoins1);
+				double cosAlphaOn2 = Math.cos(alphanmoins1/2);
+				double sinAlphaOn2 = Math.sin(alphanmoins1/2);
+				double cosGammaOn2 = Math.cos(gammanmoins1/2);
+				double sinGammaOn2 = Math.sin(gammanmoins1/2);
+				double f = ri*sinAlphaOn2-rfnmoins1*sinGammaOn2;
+				double dfByAlpha = ri/2*cosAlphaOn2;
+				double dfByGamma = -rfnmoins1/2*cosGammaOn2;
+				double dfByRf = -sinGammaOn2;
+				double g = ri2*(alphanmoins1-Math.sin(alphanmoins1))+rfnmoins12*(gammanmoins1-sinGamma)-2*Math.PI*obfuscationLevel*rfnmoins1*ri;
+				double dgByAlpha = ri2*(1-Math.cos(alphanmoins1));
+				double dgByGamma = rfnmoins12*(1-Math.cos(gammanmoins1));
+				double dgByRf = 2*rfnmoins1*(gammanmoins1-sinGamma)-2*Math.PI*obfuscationLevel*ri;
+				double h = ri*cosAlphaOn2+rfnmoins1*cosGammaOn2-d;
+				double dhByAlpha = -ri/2*sinAlphaOn2;
+				double dhByGamma = -rfnmoins1/2*sinGammaOn2;
+				double dhByRf = cosGammaOn2;
+				
+				// Create matrix
+				double [][] valuesF = {{f}, {g}, {h}};
+				double [][] valuesJ_F = {{dfByAlpha, dfByGamma, dfByRf}, {dgByAlpha, dgByGamma, dgByRf}, {dhByAlpha, dhByGamma, dhByRf}};
+		        RealMatrix F = new Array2DRowRealMatrix(valuesF);
+	//	        System.out.println("F matrix: " + F);
+		        RealMatrix J_F = new Array2DRowRealMatrix(valuesJ_F);
+	//	        System.out.println("J_F matrix: " + J_F);
+		        RealMatrix J_FinverseTimeF = new LUDecompositionImpl(J_F).getSolver().getInverse().multiply(F);
+		        
+				// Compute new values
+				alphan = alphanmoins1 - J_FinverseTimeF.getEntry(0,0);
+				gamman = gammanmoins1 - J_FinverseTimeF.getEntry(1,0);
+				rfn = rfnmoins1 - J_FinverseTimeF.getEntry(2,0);
+				
+				// Compute precision
+				precisionAlpha = Math.abs(alphan-alphanmoins1);
+				precisionGamma = Math.abs(gamman-gammanmoins1);
+				precisionRf = Math.abs(rfn-rfnmoins1);
+				i++;
+			}
+			if (!stop) {
+				double alphanToDegrees = Math.toDegrees(alphan);
+				double gammanToDegrees = Math.toDegrees(gamman);
+				if (alpha0 < maxAlpha0 && (alphanToDegrees <= 0)) {
+					restart = true;
+					alpha0 += step;
+				}
+				if (gamma0 < maxGamma0 && (gammanToDegrees <= 0 || gammanToDegrees >= 90)) {
+					restart = true;
+					gamma0 += step;
+				}
+				if (rf0 < maxRf0 && (rfn <= ri)) {
+					restart = true;
+					rf0 += step;
+				}
+//				LOG.info("Restart");
+//				LOG.info("alpha0="+alpha0+", alphanfinal="+alphan+" ou "+Math.toDegrees(alphan)+"°");
+//				LOG.info("gamma0="+gamma0+", gammanfinal="+gamman+" ou "+Math.toDegrees(gamman)+"°");
+//				LOG.info("rf0="+rf0+", rfnfinal="+rfn);
+			}
 		}
-		// Check the sens and restart if necessary
-		boolean restart = false;
-		double alphanInDegree = Math.toDegrees(alphan);
-		double gammanInDegree = Math.toDegrees(gamman);
-		LOG.info("alphanfinal="+alphan+" ou "+alphanInDegree+"°");
-		LOG.info("gammanfinal="+gamman+" ou "+gammanInDegree+"°");
-		LOG.info("rfnfinal="+rfn);
-		if (alpha0 < maxAlpha0 && (alphanInDegree <= 0 || alphanInDegree >= 360)) {
-			restart = true;
-			alpha0 += step;
-//			LOG.info("restart alpha");
-		}
-		if (gamma0 < maxGamma0 && (gammanInDegree <= 0 || gammanInDegree >= 360)) {
-			restart = true;
-			gamma0 += step;
-//			LOG.info("restart gamma");
-		}
-		if (rf0 < maxRf0 && (rfn <= ri)) {
-			restart = true;
-			rf0 += step;
-//			LOG.info("restart rf");
-		}
-		// Restart with different initialization
-		if (restart) {
-			LOG.info("Restart");
-			return solveXYZByNewton(initialLocation, middleLocation, obfuscationLevel, alpha0, gamma0, rf0);
-		}
-		LOG.info("Finish");
+		while(restart);
+		
 		List<Double> solutions = new ArrayList<Double>();
 		solutions.add(alphan);
 		solutions.add(gamman);
 		solutions.add(rfn);
-		for(Double tmp : solutions) {
-			LOG.info("solucef = "+tmp);
-		}
+//		for(Double tmp : solutions) {
+//			LOG.info("solucef = "+tmp+" ("+Math.toDegrees(tmp)+"°)");
+//		}
 		return solutions;
 	}
 }
