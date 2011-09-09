@@ -1,13 +1,47 @@
 /**
  * 
  */
-package com.societies.data;
+package com.societies.utils;
+
+import org.apache.log4j.Logger;
+
+import com.societies.data.Geolocation;
 
 /**
  * @author olivierm
  * @date 2 sept. 2011
  */
 public class GeolocationUtils {
+	private static final Logger LOG = Logger.getLogger(GeolocationUtils.class);
+	
+	public static double areaIntersection2Circles(double r1, double r2, double d) {
+		double r12 = Math.pow(r1, 2);
+    	double r22 = Math.pow(r2, 2);
+    	double d2 = Math.pow(d, 2);
+    	double alpha;
+    	double gamma;
+    	if (d == 0 || r1 == 0 || r2 == 0) {
+        	alpha = 2*Math.PI;
+        	gamma = 0;
+    	}
+    	if (d > r1+r2) {
+    		alpha = 0;
+        	gamma = 0;
+    	}
+    	else {
+    		alpha = 2*Math.acos((r12+d2-r22)/(2*r1*d));
+        	gamma = 2*Math.acos((r22+d2-r12)/(2*r2*d));
+    	}
+	
+		double a1 = r12/2*(alpha-Math.sin(alpha))+r22/2*(gamma-Math.sin(gamma));
+//		double a2 = r22*Math.acos(d/r2)-d*Math.sqrt(r22-d2);
+//		double a3 = r12/2*alpha+r22/2*gamma-1/2*Math.sqrt((-d+r1+r2)*(d-r1+r2)*(d+r1-r2)*(d+r1+r2));
+    	
+		LOG.info("Aire C1="+(Math.PI*r12)+"m², alpha="+Math.toDegrees(alpha)+"°");
+		LOG.info("Aire C2="+(Math.PI*r22)+"m², gamma="+Math.toDegrees(gamma)+"°");
+    	LOG.info("Aire C1 inter C2 methode 1="+a1+"m²");
+    	return a1;
+	}
 	/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  */
 	/* Vincenty Inverse Solution of Geodesics on the Ellipsoid (c) Chris Veness 2002-2010             */
 	/* http://www.movable-type.co.uk/                                                                                             */

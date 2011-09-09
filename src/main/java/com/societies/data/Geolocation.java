@@ -14,6 +14,7 @@ public class Geolocation {
 	private float obfuscationLevel;
 	private double shiftDirection;
 	private double shiftDistance;
+	private double shiftAlpha;
 	
 	/* -- Constructor -- */
 	public Geolocation(double latitude, double longitude,
@@ -129,5 +130,21 @@ public class Geolocation {
 	 */
 	public void setShiftDistance(double d) {
 		this.shiftDistance = d;
+	}
+
+
+	/**
+	 * @return the shiftAlpha
+	 */
+	public double getShiftAlpha() {
+		return shiftAlpha;
+	}
+
+
+	/**
+	 * @param shiftAlpha the shiftAlpha to set
+	 */
+	public void setShiftAlpha(double shiftAlpha) {
+		this.shiftAlpha = shiftAlpha;
 	}
 }

@@ -104,9 +104,14 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 			throw new Exception("Wrong parameters");
 		}
 		// Check obfuscation level
+		if (1 == obfuscationLevel) {
+			callback.obfuscationResult(data);
+			return;
+		}
 		if (0 == obfuscationLevel) {
 			obfuscationLevel = 0.0000000001F;
 		}
+		
 				
 		// -- Select obfuscator
 		IDataObfuscator<Object> obfuscator = DataObfuscatorFactory.getDataObfuscator(obfuscationType);

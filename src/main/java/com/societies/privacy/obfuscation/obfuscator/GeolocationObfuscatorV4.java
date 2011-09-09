@@ -14,10 +14,10 @@ import org.apache.commons.math.linear.RealMatrix;
 import org.apache.log4j.Logger;
 
 import com.societies.data.Geolocation;
-import com.societies.data.GeolocationUtils;
 import com.societies.privacy.data.ObfuscationType;
 import com.societies.privacy.obfuscation.IDataObfuscationManagerCallback;
 import com.societies.privacy.obfuscation.IDataObfuscator;
+import com.societies.utils.GeolocationUtils;
 
 /**
  * @author olivierm
