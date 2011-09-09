@@ -29,7 +29,7 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
 	private static double defaultLatitude = 48.856666;
 	private static double defaultLongitude = 2.350987;
 	private static float defaultHorizontalAccuracy = 542;
-	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATIONV5;
+	private static String defaultObfuscationAlgorithm = ObfuscationTypes.GEOLOCATION;
 	
 	/* -- Main -- */
 	/**
