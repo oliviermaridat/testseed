@@ -125,7 +125,7 @@ public class GeolocationUtils {
 	 * using Vincenty inverse formula for ellipsoids
 	 *
 	 * @param geolocation first point in decimal degrees
-	 * @param direction direction of the translation
+	 * @param direction direction of the translation in decimal degree
 	 * @param distance distance along direction in meters
 	 * @returns destination point
 	 */
