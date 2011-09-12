@@ -88,7 +88,7 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 		*/
 		Geolocation obfuscatedGeolocation = null;
 		int algorithm = rand.nextInt(6);
-		algorithm = 5;
+//		algorithm = 5;
 		switch(algorithm) {
 			case OPERATION_E:
 				obfuscatedGeolocation = EObfuscation(geolocation, obfuscationLevel);
