@@ -13,7 +13,7 @@ import com.societies.privacy.data.ObfuscationType;
 public interface IDataObfuscator<E> {
 	/**
 	 * Data obfuscation method
-	 * @param data Data to obfuscate
+	 * @param data Data to obfuscate (e.g. Integer, user type or a Map with multiple data)
 	 * @param obfuscationType Type of obfuscation algorithm to use with this type of data
 	 * @param obfuscationLevel Obfuscation level
 	 * @param callback Listener to see the result

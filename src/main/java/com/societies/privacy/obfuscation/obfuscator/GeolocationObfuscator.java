@@ -5,6 +5,7 @@ package com.societies.privacy.obfuscation.obfuscator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -57,19 +58,46 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 	public double precisionMax = 0.0000000000000000001;
 	public int nbMaxIteration = 30;
 	
+	/**
+	 * @param data Must be a Geolocation data, or a Map<String, Object> with Geolocation data in the key "data"
+	 */
 	public void obfuscateData(Object data, ObfuscationType obfuscationType,
 			float obfuscationLevel, IDataObfuscationManagerCallback<Object> callback) throws Exception {
-		// -- Verifications
-		if (!(data instanceof Geolocation)) {
-			throw new Exception("It's not the right obfuscation algorithm!");
-		}
-		
 		// -- Init
 		rand = new RandomBetween();
 		
 		// -- Algorithm
-		Geolocation geolocation = (Geolocation) data;
-		Geolocation obfuscatedGeolocation = obfuscateLocation(geolocation, obfuscationLevel);
+		Geolocation geolocation = null;
+		Integer obfuscationOperation = -1;
+		Float middleObfuscationLevel = (float) -1;
+		Double theta = (double) -1;
+		// Verifications and fill the data
+		if (data instanceof Geolocation) {
+			geolocation = (Geolocation) data;
+		}
+		else if (data instanceof Map<?, ?>) {
+			Map<String, Object> map = (Map<String, Object>) data;
+			if (map.containsKey("data") && map.get("data") instanceof Geolocation) {
+				geolocation = (Geolocation) map.get("data");
+			}
+			else {
+				throw new Exception("It's not the right obfuscation algorithm!");
+			}
+			if (map.containsKey("obfuscationOperation") && map.get("obfuscationOperation") instanceof Number) {
+				obfuscationOperation = (Integer) map.get("obfuscationOperation");
+			}
+			if (map.containsKey("middleObfuscationLevel") && map.get("middleObfuscationLevel") instanceof Number) {
+				middleObfuscationLevel = (Float) map.get("middleObfuscationLevel");
+			}
+			if (map.containsKey("theta") && map.get("theta") instanceof Number) {
+				theta = (Double) map.get("theta");
+			}
+		}
+		else {
+			throw new Exception("It's not the right obfuscation algorithm!");
+		}
+		
+		Geolocation obfuscatedGeolocation = obfuscateLocation(geolocation, obfuscationLevel, obfuscationOperation, middleObfuscationLevel, theta);
 		
 		// -- Send to callback
 		callback.obfuscationResult(obfuscatedGeolocation);
@@ -81,15 +109,23 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 	 * @param obfuscationLevel Obfuscation level
 	 * @return obfuscated location
 	 */
-	private Geolocation obfuscateLocation(Geolocation geolocation, float obfuscationLevel) {
+	private Geolocation obfuscateLocation(Geolocation geolocation, float obfuscationLevel, int obfuscationOperation, float middleObfuscationLevel, double theta) {
 		/* ALGORITHM
 		* Select randomly an algorithm
 		* And apply it
 		*/
 		Geolocation obfuscatedGeolocation = null;
-		int algorithm = rand.nextInt(6);
-//		algorithm = 5;
-		switch(algorithm) {
+		int operation;
+		// Select a random operation
+		if (-1 == obfuscationOperation) {
+			operation = rand.nextInt(6);
+		}
+		// Use a defined operation
+		else {
+			operation = obfuscationOperation;
+		}
+//		operation = 5;
+		switch(operation) {
 			case OPERATION_E:
 				obfuscatedGeolocation = EObfuscation(geolocation, obfuscationLevel);
 				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_E);
@@ -99,22 +135,59 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_R);
 			break;
 			case OPERATION_S:
-				obfuscatedGeolocation = SObfuscation(geolocation, obfuscationLevel);
+				// SObfuscation with a random direction theta
+				if (-1 == theta) {
+					obfuscatedGeolocation = SObfuscation(geolocation, obfuscationLevel);
+				}
+				// SObfuscation with a defined direction theta
+				else {
+					obfuscatedGeolocation = SObfuscation(geolocation, obfuscationLevel, theta);
+				}
 				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_S);
 			break;
 			case OPERATION_ES:
-				obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel);
+				// ESObfuscation with a random direction theta and a random middleObfuscationLevel
+				if (-1 == theta && -1 == middleObfuscationLevel) {
+					obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel);
+				}
+				// ESObfuscation with a random direction theta and a defined middleObfuscationLevel
+				else if (-1 == theta && -1 != middleObfuscationLevel) {
+					obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel);
+				}
+				// ESObfuscation with a defined direction theta and a random middleObfuscationLevel
+				else if (-1 != theta && -1 == middleObfuscationLevel) {
+					obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel, theta);
+				}
+				// ESObfuscation with a defined direction theta and a middleObfuscationLevel
+				else {
+					obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel, theta);
+				}
 				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_ES);
 			break;
 			case OPERATION_SE:
-				obfuscatedGeolocation = SEObfuscation(geolocation, obfuscationLevel);
+				// SEObfuscation with a random direction theta and a random middleObfuscationLevel
+				if (-1 == theta && -1 == middleObfuscationLevel) {
+					obfuscatedGeolocation = SEObfuscation(geolocation, obfuscationLevel);
+				}
+				// SEObfuscation with a defined direction theta and a middleObfuscationLevel
+				else {
+					obfuscatedGeolocation = SEObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel, theta);
+				}
 				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_SE);
 			break;
 			case OPERATION_SR:
-				obfuscatedGeolocation = SRObfuscation(geolocation, obfuscationLevel);
+				// SRObfuscation with a random direction theta and a random middleObfuscationLevel
+				if (-1 == theta && -1 == middleObfuscationLevel) {
+					obfuscatedGeolocation = SRObfuscation(geolocation, obfuscationLevel);
+				}
+				// SRObfuscation with a defined direction theta and a middleObfuscationLevel
+				else {
+					obfuscatedGeolocation = SRObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel, theta);
+				}
 				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_SR);
 			break;
 		}
+		obfuscatedGeolocation.setObfuscationLevel(obfuscationLevel);
 		return obfuscatedGeolocation;
 	}
 	
@@ -194,6 +267,34 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 		float middleObfuscationLevel = rand.nextFloatBetween(obfuscationLevel, 1);
 		// Select a random direction for the shifting
 		double theta = rand.nextDouble()*360;
+		return ESObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel, theta);
+	}
+	/**
+	 * Location obfuscation algorithm
+	 * by enlarging the radius and then
+	 * shifting the centre of the geolocation circle
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @param middleObfuscationLevel Middle Obfuscation level for E operation
+	 * @return obfuscated location
+	 */
+	private Geolocation ESObfuscation(Geolocation geolocation, float obfuscationLevel, float middleObfuscationLevel) {
+		// Select a random direction for the shifting
+		double theta = rand.nextDouble()*360;
+		return ESObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel, theta);
+	}
+	/**
+	 * Location obfuscation algorithm
+	 * by enlarging the radius and then
+	 * shifting the centre of the geolocation circle
+	 * @param geolocation Location to obfuscate
+	 * @param obfuscationLevel Obfuscation level
+	 * @param theta Direction theta for S operation
+	 * @return obfuscated location
+	 */
+	private Geolocation ESObfuscation(Geolocation geolocation, float obfuscationLevel, double theta) {
+		// Select an intermediate obfuscation level > obfuscation level
+		float middleObfuscationLevel = rand.nextFloatBetween(obfuscationLevel, 1);
 		return ESObfuscation(geolocation, obfuscationLevel, middleObfuscationLevel, theta);
 	}
 	/**

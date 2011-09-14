@@ -35,7 +35,8 @@ public class Geolocation {
 	public String toString() {
 		return "Geolocation [latitude=" + latitude + ", longitude=" + longitude
 				+ ", horizontalAccuracy=" + horizontalAccuracy
-				+ ", obfuscationLevel=" + obfuscationLevel + "]";
+				+ ", obfuscationLevel=" + obfuscationLevel
+				+ ", obfuscationAlgorithm=" + obfuscationAlgorithm + "]";
 	}
 	public String toXML() {
 		return "<geolocation>\n" +
@@ -43,6 +44,7 @@ public class Geolocation {
 				"\t<longitude>" + longitude+ "</longitude>\n" +
 				"\t<horizontalAccuracy>" + horizontalAccuracy + "</horizontalAccuracy>\n" +
 				"\t<obfuscationLevel>" + obfuscationLevel + "</obfuscationLevel>\n" +
+				"\t<obfuscationAlgorithm>" + obfuscationAlgorithm + "</obfuscationAlgorithm>\n" +
 			"</geolocation>";
 	}
 	public String toJSON() {
@@ -51,6 +53,7 @@ public class Geolocation {
 				"\"longitude\": \""+longitude+"\"\n" +
 				"\"horizontalAccuracy\": \""+horizontalAccuracy+"\"\n" +
 				"\"obfuscationLevel\": \""+obfuscationLevel+"\"\n" +
+				"\"obfuscationAlgorithm\": \""+obfuscationAlgorithm+"\"\n" +
 				"}";
 	}
 	

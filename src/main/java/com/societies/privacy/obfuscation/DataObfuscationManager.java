@@ -3,13 +3,15 @@
  */
 package com.societies.privacy.obfuscation;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.cli.PosixParser;
-import org.apache.log4j.Logger;
 
 import com.societies.data.Geolocation;
 import com.societies.data.accessor.GeolocationDAO;
@@ -52,15 +54,19 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
         	
 //        	LOG.info("Obfuscate a Data");
         	Geolocation geolocation = new Geolocation(latitude, longitude, horizontalAccuracy);
-        	
+        	Map<String, Object> map = new HashMap<String, Object>();
+        	map.put("data", geolocation);
+//        	map.put("obfuscationOperation", 2);
+//        	map.put("theta", Math.toRadians(90));
+//        	map.put("middleObfuscationLevel", 1F);
         	long start = System.currentTimeMillis();
         	
         	System.out.println("{\"results\": [\n"+geolocation.toJSON()+",");
-        	dataObfuscationManager.obfuscateData(geolocation, obfuscationType, obfuscationLevel, callback);
+        	dataObfuscationManager.obfuscateData(map, obfuscationType, obfuscationLevel, callback);
         	System.out.println("]}");
         	
         	long duree = System.currentTimeMillis() - start;
-        	System.out.println("Durée : "+duree+"ms");
+//        	System.out.println("Durée : "+duree+"ms");
         	
 //        	LOG.info("Get an Obfuscated Data");
 //        	dataObfuscationManager.getObfuscatedData(0, obfuscationType, obfuscationLevel, callback);
