@@ -23,7 +23,7 @@ import com.societies.privacy.obfuscation.obfuscator.listener.ObfuscatorListener;
  * @date 26 août 2011
  */
 public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObfuscatedAccessor{
-	private static final Logger LOG = Logger.getLogger(DataObfuscationManager.class);
+//	private static final Logger LOG = Logger.getLogger(DataObfuscationManager.class);
 	
 	private static float defaultObfuscationLevel = 1;
 	private static double defaultLatitude = 48.856666;
@@ -52,9 +52,15 @@ public class DataObfuscationManager implements IDataObfuscator<Object>, IDataObf
         	
 //        	LOG.info("Obfuscate a Data");
         	Geolocation geolocation = new Geolocation(latitude, longitude, horizontalAccuracy);
+        	
+        	long start = System.currentTimeMillis();
+        	
         	System.out.println("{\"results\": [\n"+geolocation.toJSON()+",");
         	dataObfuscationManager.obfuscateData(geolocation, obfuscationType, obfuscationLevel, callback);
         	System.out.println("]}");
+        	
+        	long duree = System.currentTimeMillis() - start;
+        	System.out.println("Durée : "+duree+"ms");
         	
 //        	LOG.info("Get an Obfuscated Data");
 //        	dataObfuscationManager.getObfuscatedData(0, obfuscationType, obfuscationLevel, callback);

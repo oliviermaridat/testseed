@@ -15,6 +15,7 @@ public class Geolocation {
 	private double shiftDirection;
 	private double shiftDistance;
 	private double shiftAlpha;
+	private int obfuscationAlgorithm = -1;
 	
 	/* -- Constructor -- */
 	public Geolocation(double latitude, double longitude,
@@ -146,5 +147,21 @@ public class Geolocation {
 	 */
 	public void setShiftAlpha(double shiftAlpha) {
 		this.shiftAlpha = shiftAlpha;
+	}
+
+
+	/**
+	 * @return the obfuscationAlgorithm
+	 */
+	public int getObfuscationAlgorithm() {
+		return obfuscationAlgorithm;
+	}
+
+
+	/**
+	 * @param obfuscationAlgorithm the obfuscationAlgorithm to set
+	 */
+	public void setObfuscationAlgorithm(int obfuscationAlgorithm) {
+		this.obfuscationAlgorithm = obfuscationAlgorithm;
 	}
 }

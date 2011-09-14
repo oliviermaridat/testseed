@@ -20,33 +20,33 @@ import com.societies.utils.RandomBetween;
  * @date 26 août 2011
  */
 public class GeolocationObfuscator implements IDataObfuscator<Object> {
-	private static final Logger LOG = Logger.getLogger(GeolocationObfuscator.class);
-	private static final boolean DEBUG = true;
+//	private static final Logger LOG = Logger.getLogger(GeolocationObfuscator.class);
+	private static final boolean DEBUG = false;
 	
 	/**
 	 * Radius enlargement operation id
 	 */
-	private final int OPERATION_E = 0;
+	public final static int OPERATION_E = 0;
 	/**
 	 * Radius reduction operation id
 	 */
-	private final int OPERATION_R = 1;
+	public final static int OPERATION_R = 1;
 	/**
 	 * Shift operation id
 	 */
-	private final int OPERATION_S = 2;
+	public final static int OPERATION_S = 2;
 	/**
 	 * Radius enlargement and then shift operation id
 	 */
-	private final int OPERATION_ES = 3;
+	public final static int OPERATION_ES = 3;
 	/**
 	 * Shift and then radius enlargement operation id
 	 */
-	private final int OPERATION_SE = 4;
+	public final static int OPERATION_SE = 4;
 	/**
 	 * Shift and then radius reduction operation id
 	 */
-	private final int OPERATION_SR = 5;
+	public final static int OPERATION_SR = 5;
 	
 	/**
 	 * Random element for random computation
@@ -92,21 +92,27 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 		switch(algorithm) {
 			case OPERATION_E:
 				obfuscatedGeolocation = EObfuscation(geolocation, obfuscationLevel);
+				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_E);
 			break;
 			case OPERATION_R:
 				obfuscatedGeolocation = RObfuscation(geolocation, obfuscationLevel);
+				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_R);
 			break;
 			case OPERATION_S:
 				obfuscatedGeolocation = SObfuscation(geolocation, obfuscationLevel);
+				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_S);
 			break;
 			case OPERATION_ES:
 				obfuscatedGeolocation = ESObfuscation(geolocation, obfuscationLevel);
+				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_ES);
 			break;
 			case OPERATION_SE:
 				obfuscatedGeolocation = SEObfuscation(geolocation, obfuscationLevel);
+				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_SE);
 			break;
 			case OPERATION_SR:
 				obfuscatedGeolocation = SRObfuscation(geolocation, obfuscationLevel);
+				obfuscatedGeolocation.setObfuscationAlgorithm(OPERATION_SR);
 			break;
 		}
 		return obfuscatedGeolocation;
