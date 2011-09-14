@@ -110,6 +110,10 @@ public class GeolocationObfuscator implements IDataObfuscator<Object> {
 	 * @return obfuscated location
 	 */
 	private Geolocation obfuscateLocation(Geolocation geolocation, float obfuscationLevel, int obfuscationOperation, float middleObfuscationLevel, double theta) {
+		if (1 == obfuscationLevel) {
+			return geolocation;
+		}
+			
 		/* ALGORITHM
 		* Select randomly an algorithm
 		* And apply it
